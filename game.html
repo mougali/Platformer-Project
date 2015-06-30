@@ -1,0 +1,159 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>Platformer Project</title>
+    <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+// ~~~~~~~~!!!!NOTE!!!!~~~~~~~~~
+// Make sure to have tweening in your program: 
+// Sprite screen; animations playing in background (e.g. repeatiing bubbles)
+
+
+// Can choose between Phaser.CANVAS, Phaser.WEBGL, and Phaser.AUTO
+// 4th parameter: id of DOM in which Canvas is contained.
+// Last parameter references Phaser's most essential functions.
+var game = new Phaser.Game(1024, 512, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+
+
+var map;
+var backgroundLayer;
+var blockLayer;
+
+var score = 0;
+var scoreText;
+var player;
+var platforms;
+var cursors;
+
+var bgems;
+
+// Accessing the world class: game.world
+
+function preload() {
+
+	game.load.image('bomb', 'resources/artpack/Items/bomb.png');
+	game.load.image('bluegem', 'resources/artpack/Items/gemBlue.png');
+	// game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
+
+	game.load.image('background', 'resources/artpack/Backgrounds/bg_grasslands.png');
+	game.load.image('ground', 'resources/artpack/Tiles/grassMid.png');
+	game.load.image('floatform', 'resources/artpack/Tiles/grassHalfMid.png', 70, 40);
+	game.load.spritesheet('alien', 'resources/artpack/Player/dude.png', 32, 48);
+
+}
+
+function create() {
+
+	// Enable Arcade Physics
+	game.physics.startSystem(Phaser.Physics.ARCADE);
+
+
+	//Background
+	game.add.sprite(0, 0, 'background');
+	game.add.sprite(0, game.world.height-140, 'ground');
+
+	// Add platforms group (contains ground and other platforms)
+	platforms = game.add.group();
+	// Enable physics for platforms group
+	platforms.enableBody = true;
+
+	// create ground in the group platforms
+	var ground = platforms.create(0, game.world.height-70, 'ground');
+	ground.scale.setTo(15, 1);
+	ground.body.immovable = true;
+
+	var ledge = platforms.create(game.world.width-280, game.world.height/2, 'floatform');
+	ledge.scale.setTo(4, 1);
+	ledge.body.immovable = true;
+
+	ledge = platforms.create(-150, game.world.height/2, 'floatform');
+	ledge.scale.setTo(6, 1);
+	ledge.body.immovable = true;
+
+	player = game.add.sprite(48, game.world.height-118, 'alien');
+
+	// Enable physics on the character + modify physics properties
+	game.physics.arcade.enable(player);
+	player.body.bounce.y = 0.1;
+	player.body.gravity.y = 700;
+	player.body.collideWorldBounds = true;	// Ensures collision mechanism
+
+	// Player animations (keyword, source files, 10 fps)
+	player.animations.add('left', [0, 1, 2, 3], 10, true);
+	player.animations.add('right', [5, 6, 7, 8], 10, true);
+
+	// Add bluegems group
+	bgems = game.add.group();
+	bgems.enableBody = true;
+
+	// create bluegem in the group
+	for (var i = 0; i < 10; i++) {
+		var bgem = bgems.create(i*100, 0, 'bluegem');
+		//bgem.scale.setTo(0.5,0.5);
+		bgem.body.gravity.y = 300;
+		bgem.body.bounce.y = 0.3 + Math.random() * 0.2;
+	}
+
+	// Used for keyboard input
+	cursors = game.input.keyboard.createCursorKeys();
+
+	// Display default score
+	scoreText = game.add.text(5, 5, 'Score: 0', {fontSize: '32px', fill: '#000'});
+}
+
+function update() {
+
+	// Collision systems
+	game.physics.arcade.collide(player, platforms);
+	game.physics.arcade.collide(bgems, platforms);
+
+	// Allow for collection of tokens
+	game.physics.arcade.overlap(player, bgems, collectToken, null, this);
+
+	// Ensure player movement always resets to 0
+	player.body.velocity.x = 0;
+	// Set key controls
+	if (cursors.left.isDown) 
+	{
+		player.body.velocity.x = -150;
+		player.animations.play('left');
+	}
+	else if (cursors.right.isDown)
+	{
+		player.body.velocity.x = 150;
+		player.animations.play('right');
+	}
+	else
+	{
+		player.animations.stop();
+	}
+
+	// Allow player to jump if up key is pressed.
+	// Separate conditional block allows for simultaneous horizontal and vertical movement
+	if (cursors.up.isDown && player.body.touching.down)
+	{
+		player.body.velocity.y = -450;
+	}
+} 
+
+function collectToken (player, bgem) {
+	bgem.kill();
+
+	score += 10;
+	scoreText.text = "Score: " + score;
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="25" height="20" tilewidth="32" tileheight="32" nextobjectid="1">
+ <tileset firstgid="1" name="generic_platformer_tiles" tilewidth="32" tileheight="32">
+  <image source="tileset/generic_platformer_tiles.png" width="1024" height="768"/>
+ </tileset>
+ <layer name="background" width="25" height="20">
+  <data encoding="base64" compression="zlib">
+   eJzd1UsOATEYB/DPbBjnwDwOMB474pXM3muNvaNwCuw4BW5CHMJfdJJqqtOWCbH4ZdKk/Zp+/7Tj5ohcSwOHaAgjGMPEsa/1DWt62MCW9NdFOGcValCHhuLcPuoGEMIpZY+Iq2PS2zxTYONiSmb8uAktybyFMPYYHwIIP5yFTk/FM5rmptNT8YxHjdzedUb9i8Yer3KOWV6xYq2qr/c7sIQVdxd0ck56lXxVfT2g5g72ZNbTHvS5b5Y5/DuTd4tXgjJUJLXEubb/hDZ0oCupJc69svfUo+f3NW2PKcxg/gNZZOUGlPk2Yw==
+  </data>
+ </layer>
+ <layer name="blocklayer" width="25" height="20">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFQx24AXErIwL7DLSD0ADIfe5A7AHEnkDsBcTeDNR3ZzoQZwBxJhBnAXE2lc0fqWAoxd8zIH5OTUeNghEJxBkgZakEkG5kJB63QMvgNkbi7VrISBo+iMdsAGHaHEE=
+  </data>
+ </layer>
+ <layer name="dangerlayer" width="25" height="20">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFo2AUjIJRMApGAS3BckYIXgXFIPYyRvLMAulbAcQroWathJoFAKNrB+w=
+  </data>
+ </layer>
+</map>

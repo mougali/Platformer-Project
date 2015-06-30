@@ -1,0 +1,833 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>Phaser - Making your first game, part 2</title>
+    <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
+    <!---->
+    <script src="phaser-state-transition-plugin.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(600, 400, Phaser.AUTO, 'game');
+
+PlatformGame = {};
+PlatformGame.SplashScreen = function(game) {};
+PlatformGame.MainMenu = function(game) {};
+PlatformGame.HelpState = function(game) {};
+PlatformGame.GameState = function(game) {};
+PlatformGame.GameOverState = function(game) {};
+
+var map;
+var backgroundLayer;
+var blockLayer;
+var dangerLayer;
+
+var player;
+var score = 0;
+var scoreText;
+var cursors;
+var jumpTimer = 0;
+var bullets;
+var bulletTimer = 0;
+
+var mummyEnemies;
+var mummyTimer = 0;
+
+var timeCheck;
+var fireButton, pauseButton;
+var pauseLabel, exitLabel;
+var pauseMenuText;
+
+// Used as timer in splash-screen
+var currentTime;
+var splashScreen;
+
+// Used in MainMenu
+var button1, button2, button3;
+var textButton1, textButton2, textButton3;
+
+// Used in HelpState
+var backButton;
+
+// Used for transitioning between states
+var transitionPlugin;
+var gameOverTransition;
+
+PlatformGame.SplashScreen.prototype = {
+
+    preload: function() {
+
+        this.game.load.image('background', 'resources/artpack/Backgrounds/bg_desert.png');
+        this.game.load.image('phaser', 'resources/phaser-logo-small.png');
+    },
+
+    create: function() {
+
+        // ~~~~~~~~~~~~~ PHASER STATE TRANSITION ~~~~~~~~~~~~~~ //
+        //add Phaser state transition plugin
+        this.game.transitionPlugin = this.game.plugins.add(Phaser.Plugin.StateTransition);
+
+        // define new properties to be tweened, duration, ease
+        this.game.transitionPlugin.configure({
+
+            // how long the animation should take
+            duration: 2000,
+
+            // ease property
+            ease: Phaser.Easing.Linear.None, /* default ease */
+
+            // what property should be tweened
+            properties: {
+                alpha: 0
+                // scale: {
+                //     x: 1.5,
+                //     y: 1.5
+                // }
+            }
+        });
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ // 
+
+        this.game.stage.backgroundColor = "#000000";
+        this.game.splashScreen = this.game.add.image(Math.floor(game.width/2), Math.floor(game.height/2), 'background');
+        this.game.splashScreen.anchor.setTo(0.5, 0.5);
+        // this.game.splashScreen.scale.setTo(0.5, 0.5);
+
+        this.logo = this.game.add.image(Math.floor(game.width/2), Math.floor(game.height/2), 'phaser');
+        this.logo.anchor.setTo(0.5, 0.5);
+        this.game.currentTime = game.time.now;
+
+        this.game.splashScreen.fixedToCamera = true;
+        this.logo.fixedToCamera = true;
+    },
+
+    update: function() {
+
+        if (game.time.now - this.game.currentTime > 3000)
+            this.game.transitionPlugin.to('MainMenu');
+    }
+
+}
+
+PlatformGame.MainMenu.prototype = {
+
+    preload: function() {
+
+        this.game.load.image('background', 'resources/artpack/Backgrounds/bg_castle.png');
+        this.game.load.image('blueButton_up', 'resources/UIpack/PNG/blue_button00.png');
+        this.game.load.image('blueButton_down', 'resources/UIpack/PNG/blue_button01.png');
+    },
+
+    create: function() {
+
+        // ~~~~~~~~~~~~~~~~~~PHASER TRANSITION PLUGIN~~~~~~~~~~~~~~~~~~~~
+        // define new properties to be tweened, duration, ease
+        this.game.transitionPlugin.configure({
+
+            // how long the animation should take
+            duration: 750,
+
+            // ease property
+            ease: Phaser.Easing.Linear.None, /* default ease */
+
+            // what property should be tweened
+            properties: {
+                alpha: 0
+            }
+        });
+
+
+        this.bg = this.game.add.tileSprite(0, 0, game.stage.width, game.stage.height, 'background');
+        timer = this.time.now;
+
+        // Add buttons
+        this.game.button1 =  this.game.add.button(300, 100, 'blueButton_up', this.playState, this);
+        this.game.button1.setFrames('blueButton_up', 'blueButton_up', 'blueButton_down', 'blueButton_up');
+        this.game.button1.anchor.setTo(0.5, 0.5);
+
+        var style = { font: "18px KenVector Future Thin", fill: "#FFFFFF", wordWrap: true, wordWrapWidth: this.game.button1.width, align: "center"};
+
+        this.game.textButton1 = game.add.text(0, 0, "Play Game", style);
+        this.game.textButton1.anchor.set(0.5);
+
+        this.game.textButton1.x = this.game.button1.x;
+        this.game.textButton1.y = this.game.button1.y;
+
+        this.game.button2 = this.game.add.button(300, 200, 'blueButton_up', this.settingsState, this);
+        this.game.button2.anchor.setTo(0.5, 0.5);
+        this.game.button2.setFrames('blueButton_up', 'blueButton_up', 'blueButton_down', 'blueButton_up');
+
+        this.game.textButton2 = game.add.text(0, 0, "Settings", style);
+        this.game.textButton2.anchor.set(0.5);
+
+        this.game.textButton2.x = this.game.button2.x;
+        this.game.textButton2.y = this.game.button2.y;
+
+        this.game.button3 = this.game.add.button(300, 300, 'blueButton_up', this.helpState, this);
+        this.game.button3.anchor.setTo(0.5, 0.5);
+        this.game.button3.setFrames('blueButton_up', 'blueButton_up', 'blueButton_down', 'blueButton_up');
+
+        this.game.textButton3 = game.add.text(0, 0, "Help", style);
+        this.game.textButton3.anchor.set(0.5);
+
+        this.game.textButton3.x = this.game.button3.x;
+        this.game.textButton3.y = this.game.button3.y;
+
+        // Ensures screen remains intact when transition to GameState
+        this.bg.fixedToCamera = true;
+        this.game.button1.fixedToCamera = true;
+        this.game.button2.fixedToCamera = true;
+        this.game.button3.fixedToCamera = true;
+        this.game.textButton1.fixedToCamera = true;
+        this.game.textButton2.fixedToCamera = true;
+        this.game.textButton3.fixedToCamera = true;
+    },
+
+    // update: function() {
+
+    //     // if (this.time.now - timer > 3000)
+    //         // game.state.start('GameState');
+    // },
+
+    playState: function() {
+
+        game.state.start('GameState');
+    },
+
+    settingsState: function() {
+
+    },
+
+    helpState: function() {
+
+        this.game.transitionPlugin.to('HelpState');
+        // game.state.start('HelpState');
+    }
+}
+
+PlatformGame.HelpState.prototype = {
+
+    preload: function() {
+
+        this.game.load.image('background', 'resources/artpack/Backgrounds/bg_castle.png');
+        this.game.load.image('upIcon', 'resources/UIpack/PNG/blue_sliderUp.png');
+        this.game.load.image('rightIcon', 'resources/UIpack/PNG/blue_sliderRight.png');
+        this.game.load.image('leftIcon', 'resources/UIpack/PNG/blue_sliderLeft.png');
+        this.game.load.image('spacebarIcon', 'resources/UIpack/PNG/blue_button04.png');
+        this.game.load.image('backIcon', 'resources/UIpack/PNG/yellow_sliderLeft.png');
+    },
+
+    create: function() {
+
+        // ~~~~~~~~~~~~~~~~~~PHASER TRANSITION PLUGIN~~~~~~~~~~~~~~~~~~~~
+        // define new properties to be tweened, duration, ease
+        this.game.transitionPlugin.configure({
+
+            // how long the animation should take
+            duration: 750,
+
+            // ease property
+            ease: Phaser.Easing.Linear.None, /* default ease */
+
+            // what property should be tweened
+            properties: {
+                alpha: 0
+            }
+        });
+
+        // Set background
+        this.bg = this.game.add.tileSprite(0, 0, game.stage.width, game.stage.height, 'background');
+
+        // Add back button
+        this.game.backButton =  this.game.add.button(25, 20, 'backIcon', this.mainMenuState, this);
+        this.game.backButton.anchor.setTo(0.5, 0.5);
+
+        // Add icons
+        this.up = this.game.add.sprite(Math.floor(this.game.width/2 - 100), Math.floor(this.game.height/2 - 100), 'upIcon');
+        this.left = this.game.add.sprite(Math.floor(this.game.width/2 - 100), Math.floor(this.game.height/2 - 25), 'rightIcon');
+        this.right = this.game.add.sprite(Math.floor(this.game.width/2 -100), Math.floor(this.game.height/2 + 50), 'leftIcon');
+        this.space = this.game.add.sprite(Math.floor(this.game.width/2 - 153), Math.floor(this.game.height/2 + 125), 'spacebarIcon');
+        this.space.scale.setTo(0.8, 0.8);
+
+        this.up.anchor.set(0.5, 1);
+        this.left.anchor.set(0.5, 1);
+        this.right.anchor.set(0.5, 1);
+        this.space.anchor.set(0.5, 1);
+
+        // Text style for space-bar
+        var style = { font: "18px KenVector Future Thin", fill: "#FFFFFF", wordWrap: false, align: "center"};
+        this.backButtonText = this.game.add.text(this.game.backButton.x + 40, this.game.backButton.y, "Back to Main Menu", style);
+        this.backButtonText.anchor.setTo(0, 0.5);
+
+        style = { font: "18px KenVector Future Thin", fill: "#FFFFFF", wordWrap: true, wordWrapWidth: this.space.width, align: "center"};
+        this.spaceText = this.game.add.text(0, 0, "SPACE", style);
+        this.spaceText.x = this.space.x;
+        this.spaceText.y = this.space.y - 7;
+        this.spaceText.anchor.setTo(0.5, 1);
+
+        // Text style
+        style = { font: "24px KenVector Future", fill: "#FFFFFF", wordWrap: true, wordWrapWidth: this.game.button1.width, align: "center"};
+
+        // Add icon text
+        this.upText = this.game.add.text(0, 0, "JUMP", style);
+        this.rightText = this.game.add.text(0, 0, "MOVE RIGHT", style);
+        this.leftText = this.game.add.text(0, 0, "MOVE LEFT", style);
+        this.spaceText = this.game.add.text(0, 0, "FIRE", style);
+
+        this.upText.x = this.up.x + 80;
+        this.upText.y = this.up.y-5;
+        this.upText.anchor.set(0, 1);
+
+        this.rightText.x = this.right.x + 80;
+        this.rightText.y = this.right.y-5;
+        this.rightText.anchor.set(0, 1);
+
+        this.leftText.x = this.left.x + 80;
+        this.leftText.y = this.left.y-5;
+        this.leftText.anchor.set(0, 1);
+
+        this.spaceText.x = this.leftText.x;
+        this.spaceText.y = this.space.y - 5;
+        this.spaceText.anchor.set(0, 1);
+
+    },
+
+    mainMenuState: function() {
+
+        // game.state.start('MainMenu');
+        this.game.transitionPlugin.to('MainMenu');
+
+    }
+}
+
+PlatformGame.GameState.prototype = {
+    
+    preload: function() {
+
+        // game.load.image('sky', 'assets/sky.png');
+        // game.load.image('ground', 'assets/platform.png');
+        // game.load.image('star', 'assets/star.png');
+        // game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
+
+        // load all game assets
+        // images, spritesheets, atlases, audio etc..
+        this.load.tilemap('myTilemap', 'resources/tileset/mario_tilemap.json', null, Phaser.Tilemap.TILED_JSON);
+        this.load.image('myTileset', 'resources/tileset/generic_platformer_tiles.png');
+
+        // load sprites (game characters)
+        this.load.spritesheet('dude', 'resources/artpack/Player/mariospritesheet-small.png', 50, 50);
+        this.load.spritesheet('mummy', 'resources/artpack/Enemy/metalslug_mummy37x45.png', 37, 45, 18);
+
+        game.load.image('bullet', 'resources/artpack/Player/bullets.png');
+
+    },
+
+    create: function() {
+
+
+        // Use Tilemap and Tileset to generate background + block layers
+        map = this.add.tilemap('myTilemap');
+        map.addTilesetImage('generic_platformer_tiles', 'myTileset');
+
+        backgroundLayer = map.createLayer('background');
+        blockLayer = map.createLayer('blocklayer');
+        dangerLayer = map.createLayer('dangerlayer');
+        
+        // WORLD CHANGE
+        backgroundLayer.resizeWorld();
+
+        // set up global physics
+        this.physics.arcade.gravity.y = 300;
+        this.physics.arcade.setBounds(0, 0, game.width, game.height);
+
+        // Set up player
+        this.setupPlayer("Mario");
+        game.world.setBounds(0, 0, 800, 640);
+
+        // Set up HUD (e.g. score)
+        this.style = { font: "24px KenVector Future Thin", fill: "#FFFFFF", wordWrap: false, align: "center"};
+        this.game.score = 0;
+        this.game.scoreText = this.game.add.text(20, 20, "SCORE: " + this.game.score + "", this.style);
+        this.game.scoreText.fixedToCamera = true;
+        this.game.scoreText.anchor.setTo(0, 0.5);
+       
+        this.game.pauseLabel = this.game.add.text(this.game.width-20, 20, "PAUSE", this.style);
+        this.game.pauseLabel.anchor.setTo(1, 0.5);
+        this.game.pauseLabel.fixedToCamera = true;
+        this.game.pauseLabel.inputEnabled = true;
+        this.game.pauseLabel.events.onInputUp.add(this.pauseUnpause);
+
+        // Pause-Menu Text
+        this.game.pauseMenuText = this.game.add.text(this.game.width/2, this.game.height/2, "GAME PAUSED" + "\n" + "PRESS P TO UNPAUSE", this.style);
+        this.game.pauseMenuText.anchor.setTo(0.5, 0.5);
+        this.game.pauseMenuText.fixedToCamera = true;
+        this.game.pauseMenuText.visible = false;
+
+        // Exit-Game Text
+        this.game.exitLabel = this.game.add.text(this.game.width-20, this.game.height-20, "EXIT", this.style);
+        this.game.exitLabel.anchor.setTo(1, 0.5);
+        this.game.exitLabel.fixedToCamera = true;
+        this.game.exitLabel.inputEnabled = true;
+        this.game.exitLabel.events.onInputUp.add(function () {
+            this.game.state.start('MainMenu');
+        });
+
+        // this.game.input.onDown.add(this.pauseUnpause, self);
+
+        // Player bullets
+        bullets = this.game.add.group();
+        bullets.enableBody = true;
+        bullets.physicsBodyType = Phaser.Physics.ARCADE;
+        bullets.createMultiple(50, 'bullet');
+        bullets.setAll('anchor.x', 0.5);
+        bullets.setAll('anchor.y', 0.5);
+        bullets.setAll('outOfBoundsKill', true);
+        bullets.setAll('checkWorldBounds', true);
+
+        // Set up enemy type 1
+        mummyEnemies = game.add.group();
+        mummyEnemies.enableBody = true;
+        mummyEnemies.physicsBodyType = Phaser.Physics.ARCADE;
+        this.setupEnemy("Mummy");
+
+        var enemy = mummyEnemies.getFirstExists(false);
+        enemy.exists = true;
+        enemy.animations.play('walk');
+
+        // set up keyboard input
+        cursors = game.input.keyboard.createCursorKeys();
+        fireButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+        this.game.pauseButton = game.input.keyboard.addKey(Phaser.Keyboard.P);
+        this.game.pauseButton.onDown.add(this.pauseUnpause, this);
+
+        // ensure that blockLayer tiles are collidable
+        //setCollisionBetween(start, stop, collides, layer, recalculate)
+        map.setCollisionBetween(103, 107, true, 'blocklayer');
+        map.setCollisionBetween(23, 24, true, 'blocklayer');
+        map.setCollisionBetween(230, 231, true, 'blocklayer');
+        map.setCollisionBetween(388, 390, true, 'blocklayer');
+        map.setCollisionBetween(70, 76, true, 'blocklayer');
+        map.setCollision(385, true, 'blocklayer');
+        map.setCollision(417, true, 'blocklayer');
+        map.setCollision(449, true, 'blocklayer');
+
+        // ensure collisions with dangerlayer
+        map.setCollisionBetween(422, 426, true, 'dangerlayer');
+    },
+
+    update: function() {
+
+        game.physics.arcade.collide(this.game.player, blockLayer);
+        game.physics.arcade.collide(mummyEnemies, blockLayer);
+
+        game.physics.arcade.overlap(this.game.player, dangerLayer, this.killPlayer, null, this);
+        game.physics.arcade.overlap(this.game.player, mummyEnemies, this.killPlayer, null, this);
+        game.physics.arcade.overlap(bullets, mummyEnemies, this.killEnemy, null, this);
+
+        // Add ability to pause
+        // if (this.game.pauseButton.isDown) 
+        // {
+        //     this.pauseUnpause();
+        // }
+
+        // mummyEnemies.forEachExists(game.physics.arcade.collide, this, dangerLayer, this.killEnemy, null, this);
+
+        // !!!!!!!! NEEDS DE-BUGGING !!!!!!!!!
+        mummyEnemies.forEachExists(function(mummy) {
+
+            // console.log("Entered mummyEnemy danger check.\n" + mummy.key + "\n");
+            this.game.physics.arcade.overlap(mummy, dangerLayer, this.killEnemy, null, this);
+
+        }, this);
+        // game.physics.arcade.overlap(mummyEnemies, dangerLayer, this.killEnemy, null, this);
+        
+        this.game.player.body.velocity.x = 0;
+
+        if (cursors.left.isDown)
+        {
+            this.game.player.scale.x = -1;
+            this.game.player.body.velocity.x = -150;
+            this.game.player.animations.play('move');
+        }
+        else if (cursors.right.isDown)
+        {
+            this.game.player.scale.x = 1;
+            this.game.player.body.velocity.x = 150;
+            this.game.player.animations.play('move');
+        }
+        else if (!game.physics.arcade.overlap(this.game.player, dangerLayer, null, null, this))
+        {
+            this.game.player.animations.stop();
+            this.game.player.frame = 0;
+        }
+
+
+        // Can also use player.body.blocked variable
+        // jumpTimer variable sets the minimum amount of time that must pass before player can jump again
+        if (cursors.up.isDown && this.game.player.body.onFloor())
+        {
+            this.game.player.body.velocity.y = -650;
+            // jumpTimer = game.time.now + 750;
+        }
+
+        // Allows for bullet firing (simultaneous with other inputs)
+        if (fireButton.isDown)
+        {
+            this.fireBullet();
+        }
+
+        // ~~~~~~~~~~~~~ ENEMY HANDLING ~~~~~~~~~~~~~~~~
+        // Uses iterator to go through each enemy that's on stage
+        mummyEnemies.forEach(this.updateEnemyMovement, this, true);
+
+        // Update score
+        this.game.scoreText.text = "SCORE: " + this.game.score + "";
+
+    },
+
+    pauseUnpause: function() {
+
+        this.game.paused = !this.game.paused;
+        this.game.pauseMenuText.visible = !this.game.pauseMenuText.visible;
+    },
+
+    updateEnemyMovement: function (enemy) {
+
+        var mummyCheck = mummyEnemies.getFirstExists(true);
+
+        // if enemy is not null and is of type Mummy
+        if (enemy && enemy.key == 'mummy')
+        {
+            // console.log("Entered updateEnemyMovement() conditional.")
+            if (this.checkCliff(enemy))
+            {
+                enemy.scale.x *= -1;
+                enemy.body.velocity.x *= -1;
+            }
+
+            if (!enemy.body.onFloor())
+            {
+                enemy.body.velocity.x /= 10;
+            }
+            else {
+                // set velocity to 100, based on whichever direction enemy is facing.
+                enemy.body.velocity.x = enemy.scale.x * 100;
+            }
+        }
+    },
+
+    setupPlayer: function (player_type) {
+
+        // Conditionals allow for various player types
+        if (player_type == "Mario")
+        {
+            if (player == null) 
+                this.game.player = this.game.add.sprite(game.width/2, game.height-30, 'dude'); //50 x 32 = starting position
+            else this.game.player.reset(game.width/2, game.height-30);
+
+            this.game.player.scale.setTo(0.8, 0.8);
+            this.game.physics.enable(this.game.player, Phaser.Physics.ARCADE);
+            this.game.player.body.collideWorldBounds = true;
+            // player.body.setSize(20, 32, 0, 0);
+
+            // setTo() function sets pivot point at the middle foot of the character, instead of top-left
+            this.game.player.anchor.setTo(0.5, 1);
+
+            // Add animations for movement and death
+            this.game.player.animations.add('move', [0, 1, 2, 3, 4], 10, true);
+            this.game.player.animations.add('die', [13, 14, 15, 16], 10, true);
+            this.game.player.body.gravity.y = 700;
+            this.game.player.body.bounce.y = 0.1;
+
+            this.game.camera.follow(this.game.player);
+        }
+
+        else if (player_type === "Skeleton")
+        {
+
+        }
+        else
+        {
+
+        }
+
+    },
+
+    killPlayer: function (player, dangerLayer) {
+
+        // var currentTime = game.time.now;
+        // var endTime = currentTime + 1;
+
+        var x = this.game.player.body.x;
+        var y = this.game.player.body.y;
+        var anim;
+
+        // !!! NEEDS WORK !!!
+        // Display death animation when player dies
+        var dplayer = game.add.sprite(x, y, 'dude');
+        dplayer.reset(x, y);
+        anim = dplayer.animations.add('die', [13, 14, 15, 16], 10, true);
+        anim.play(5, false, true);
+
+        // !!! ADD DEATH SOUND !!!
+
+        this.game.player.kill();
+
+        this.setHighScore();
+
+        this.game.state.start('GameOverState');
+        
+    },
+
+    // Determine if new high score has been reached, and store in localStorage
+    setHighScore: function() {
+
+        var storedItem = localStorage.getItem('highScore');
+
+        if (localStorage.getItem('highScore') == null)
+            localStorage.setItem('highScore', this.game.score);
+        else if ((Number(storedItem)) < this.game.score)
+            localStorage.highScore = this.game.score;
+    },
+
+    setupEnemy: function (enemyType) {
+
+        var spawnX, spawnY;
+
+        if (enemyType === "Mummy") {
+
+            for (var i = 0; i < 30; i++) {
+                
+                spawnX = Math.floor(Math.random()*600)+150;
+                spawnY = Math.floor(Math.random()*450)+1;
+
+                // Used to ensure the enemy doesn't spawn near the same x-value as player's
+                // current position.
+                if (Math.abs(spawnX - this.game.player.body.x) < 70) {
+
+                    if (spawnX < 300)
+                        spawnX += 100;
+                    else
+                        spawnX -= 100;
+                } 
+                if (Math.abs(spawnX - this.game.world.centerX) < 70)
+                {
+                    if (spawnX < 300)
+                        spawnX = 150;
+                    else spawnX = 450;
+                }                
+
+                var mum = mummyEnemies.create(spawnX, spawnY, 'mummy', 14, false);
+                mum.anchor.setTo(0.5, 1);
+                mum.animations.add('walk', null, 10, true);
+                mum.body.collideWorldBounds = true;
+                mum.body.velocity.x = 100;
+                mum.body.gravity.y = 500;
+                mum.body.bounce.y = 0.1;
+                mum.anchor.setTo(0.5, 1);
+            }
+        }
+    },
+
+    // Note: <bullet> is an optional parameter
+    killEnemy: function (bullet, enemy) {
+
+        if (enemy.key == 'mummy')
+        {
+            
+            // nextMummy = mummyEnemies.next();
+            // nextMummy.exists = true;
+            // nextMummy.animations.play('walk');
+
+            enemy.kill();
+            
+            if (bullet.key == 'bullet') {
+                this.game.score += 10;
+                bullet.kill();
+            }
+
+
+            if (mummyEnemies.getFirstExists(true) == null) {
+                console.log('Entered enemy conditional.');
+                this.generateEnemies(enemy);
+            }
+        }
+    },
+
+    generateEnemies: function (enemy) {
+
+        var enemyAmount = Math.floor(Math.random() * 6)+1;
+        
+        if (enemy.key = 'mummy')
+        {
+            var nextMummy;
+            for (var i = 0; i < enemyAmount; i++) {
+
+                nextMummy = mummyEnemies.next();
+                nextMummy.exists = true;
+                nextMummy.animations.play('walk');
+
+            }
+        }
+    },
+
+    // Allows player to fire bullets
+    fireBullet: function () {
+
+        if (game.time.now > bulletTimer) 
+        {
+            var bullet = bullets.getFirstExists(false);
+
+            if (bullet)
+            {
+                // And fire it
+                if (this.game.player.scale.x == -1) {
+                    bullet.reset(this.game.player.x - 15, this.game.player.body.y + (this.game.player.height/2));
+                    bullet.body.velocity.x = -500;
+                }
+                else if (this.game.player.scale.x == 1) {
+                    bullet.reset(this.game.player.x + 15, this.game.player.body.y + (this.game.player.height/2));
+                    bullet.body.velocity.x = 500;
+                }
+
+                // Ensure that bullet shoots straight
+                bullet.body.gravity.y = -300;
+
+                bulletTimer = game.time.now + 150;
+            }
+        }
+    },
+
+    checkCliff: function (enemy) {
+
+        var side = enemy.scale.x;
+        var x = enemy.body.x;
+        var y = enemy.body.y;
+
+        // facing right
+        if (enemy.body.onFloor() && side == 1) 
+        {
+            if (map.getTileWorldXY(x+25, y+50, 32, 32, 'blocklayer') == null)
+                return true;
+        }
+        // enemy facing left
+        else if (enemy.body.onFloor() && side == -1)
+        {
+            if (map.getTileWorldXY(x-2, y+50, 32, 32, 'blocklayer') == null)
+                return true;
+        }
+
+        return false;
+    }
+}
+
+var gameOverLabel;
+var returnLabel;
+var playLabel;
+var highScoreLabel;
+
+PlatformGame.GameOverState.prototype = {
+
+    preload: function() {
+        this.game.load.image('background', 'resources/artpack/Backgrounds/bg_shroom.png');
+    },
+
+    create: function() {
+
+        // ~~~~~~~~~~~~~~~~~~PHASER TRANSITION PLUGIN~~~~~~~~~~~~~~~~~~~~
+        // define new properties to be tweened, duration, ease
+        this.game.transitionPlugin.configure({
+
+            // how long the animation should take
+            duration: 500,
+
+            // ease property
+            ease: Phaser.Easing.Linear.None, /* default ease */
+
+            // what property should be tweened
+            properties: {
+                alpha: 0
+            }
+        });
+
+        this.game.camera.reset();
+
+        var style = { font: "48px KenVector Future Thin", fill: "#CC0000", wordWrap: false, align: "center"};
+
+        this.game.gameOverLabel = this.game.add.text(Math.floor(game.width/2), Math.floor(game.height/2 - 60), "GAME OVER", style);
+        this.game.gameOverLabel.anchor.setTo(0.5, 0.5);
+
+        style = { font: "18px KenVector Future Thin", fill: "#FF8000", wordWrap: true, wordWrapWidth: this.game.button1.width, align: "center"};
+
+        this.game.playLabel = this.game.add.text(Math.floor(game.width/2), Math.floor(game.height/2), "PLAY AGAIN", style);
+        this.game.returnLabel = this.game.add.text(Math.floor(game.width/2), Math.floor(game.height/2 + 30), "MAIN MENU", style);
+        this.game.playLabel.anchor.setTo(0.5, 0.5);
+        this.game.returnLabel.anchor.setTo(0.5, 0.5);
+
+        // Enable high score label
+        this.game.highScoreLabel = this.game.add.text(Math.floor(game.width/2), Math.floor(game.height/2 + 60), "HIGH SCORE: " + localStorage.getItem('highScore'), style);
+        this.game.highScoreLabel.anchor.setTo(0.5, 0.5);
+
+        // Enable and program inputs on text labels
+        this.game.playLabel.inputEnabled = true;
+        this.game.playLabel.events.onInputOver.add(this.over, this);
+        this.game.playLabel.events.onInputOut.add(this.out, this);
+        this.game.playLabel.events.onInputDown.add(this.down, this);
+        this.game.playLabel.events.onInputUp.add(this.up, this);
+
+        this.game.returnLabel.inputEnabled = true;
+        this.game.returnLabel.events.onInputOver.add(this.over, this);
+        this.game.returnLabel.events.onInputOut.add(this.out, this);
+        this.game.returnLabel.events.onInputDown.add(this.down, this);
+        this.game.returnLabel.events.onInputUp.add(this.up, this);
+    },
+
+    update: function() {
+
+    },
+
+    over: function(item) {
+        
+        item.fill = "#CC0000";
+    },
+
+    out: function (item) {
+
+        item.fill = "#FF8000";
+    },
+
+    down: function (item) {
+
+        item.fill = "#99000";
+
+        if (item.text === "PLAY AGAIN")
+            this.game.state.start('GameState');
+        else if (item.text === "MAIN MENU")
+            this.game.state.start('MainMenu');
+    },
+
+    up: function (item) {
+
+        item.fill = "#FF8000";
+    }
+
+}
+
+game.state.add('SplashScreen', PlatformGame.SplashScreen);
+game.state.add('MainMenu', PlatformGame.MainMenu);
+game.state.add('HelpState', PlatformGame.HelpState);
+game.state.add('GameState', PlatformGame.GameState);
+game.state.add('GameOverState', PlatformGame.GameOverState)
+game.state.start('SplashScreen');
+
+</script>
+
+</body>
+</html>
